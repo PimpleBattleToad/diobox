@@ -603,48 +603,47 @@ class ArtBuilder:
         return res
 
     def _panel_quad(self, kind: str, W: float, H: float, D: float,
-                    transposed: bool = False):
+                    layout: str = "cross"):
         """Углы панели (TL, TR, BR, BL) в долях окна — перспектива из точки
         съёмки перед коробкой на середине высоты.
 
-        transposed=True меняет местами оси текстуры (s и t). Нужно для
-        раскладки «боковины на заднике»: там стенка на листе повёрнута на 90°
-        (ширина — глубина, высота — высота), поэтому и текстура строится
-        с другими осями.
+        В раскладке «боковины на заднике» стенки на листе повёрнуты на 90°
+        (ширина панели — глубина, высота — высота), поэтому у них свой набор
+        углов; остальные панели совпадают с «крестом».
         """
         k = self.depth_k
 
         def uv(x: float, y: float, z: float):
-            # При складывании вкладыша левая половина развёртки уходит на
-            # левую стенку для смотрящего. Значит ось u (вправо по развёртке)
-            # направлена против координаты x — иначе картинка печатается
-            # зеркально (проверяется по надписи на потолке).
+            # Развёртка складывается лицевой стороной внутрь: смотрящий стоит
+            # с открытой стороны, мировой +x уходит у него влево, а ось u
+            # (вправо по листу) должна идти к правой части картинки — отсюда
+            # u = 1 - x/W. Углы панелей ниже заданы уже с учётом этого.
             xu = 1.0 - x / W
             lam = (k * D) / (k * D + (D - z)) if D > 0 else 1.0
             return (0.5 + (xu - 0.5) * lam, 0.5 - (y / H - 0.5) * lam)
 
-        # Углы заданы в порядке текстуры (TL, TR, BR, BL) и с учётом того,
-        # что u идёт против x (см. uv): u=0 — сторона x=W.
+        # Углы заданы в порядке текстуры (TL, TR, BR, BL).
         corners = {
-            "back": [(W, H, 0), (0, H, 0), (0, 0, 0), (W, 0, 0)],
-            "left": [(W, H, 0), (W, 0, 0), (W, 0, D), (W, H, D)],
-            "right": [(0, 0, 0), (0, H, 0), (0, H, D), (0, 0, D)],
-            "floor": [(W, 0, 0), (0, 0, 0), (0, 0, D), (W, 0, D)],
+            "back": [(0, H, 0), (W, H, 0), (W, 0, 0), (0, 0, 0)],
+            "left": [(0, H, 0), (0, 0, 0), (0, 0, D), (0, H, D)],
+            "right": [(W, 0, 0), (W, H, 0), (W, H, D), (W, 0, D)],
+            "floor": [(0, 0, 0), (W, 0, 0), (W, 0, D), (0, 0, D)],
             # потолок приклеен к заднику верхней кромкой: у развёртки его
             # верх (t=0) — это передний край коробки, низ (t=1) — задник
-            "top": [(W, H, D), (0, H, D), (0, H, 0), (W, H, 0)],
-        }[kind]
-        if transposed:
-            # порядок углов для повёрнутой на 90° стенки: у левой и правой она
-            # ориентированы по-разному (в «крестовой» текстуре у правой ось s
-            # идёт вверх, у левой — вниз), поэтому и порядок разный
-            order = {"left": [0, 3, 2, 1], "right": [1, 2, 3, 0]}[kind]
-            corners = [corners[i] for i in order]
+            "top": [(0, H, D), (W, H, D), (W, H, 0), (0, H, 0)],
+        }
+        if layout == "back" and kind in ("left", "right"):
+            # стенка повёрнута: u идёт по глубине, v — по высоте
+            corners = {
+                "left": [(0, H, D), (0, H, 0), (0, 0, 0), (0, 0, D)],
+                "right": [(W, H, 0), (W, H, D), (W, 0, D), (W, 0, 0)],
+            }[kind]
+        else:
+            corners = corners[kind]
         return [uv(*p) for p in corners]
 
     def panel(self, kind: str, w_mm: float, h_mm: float, net: "Net",
-              frac: Tuple[float, float, float, float] = (0.0, 1.0, 0.0, 1.0),
-              transposed: bool = False
+              frac: Tuple[float, float, float, float] = (0.0, 1.0, 0.0, 1.0)
               ) -> Image.Image:
         """Текстура панели в объёмной раскладке.
 
@@ -660,7 +659,7 @@ class ArtBuilder:
         wx, wy, ww, wh = self._window(net.W, net.H)
         quad = [(wx + u * ww, wy + v * wh)
                 for (u, v) in self._panel_quad(kind, net.W, net.H, net.D,
-                                               transposed=transposed)]
+                                               layout=getattr(net, "layout", "cross"))]
 
         unit = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
         Hm = _homography(unit, quad)
@@ -740,13 +739,12 @@ def render_sheet(net: Net, art: ArtBuilder, dpi: float, margin_mm: float,
         bb = bleed_mm if b else 0.0
         aw, ah = pw + bl + br, ph + bt + bb
 
-        # в раскладке «боковины на заднике» стенки на листе повёрнуты на 90°:
-        # строим текстуру с транспонированными осями
+        # в раскладке «боковины на заднике» стенки на листе повёрнуты на 90°
         rot = net.layout == "back" and name in ("left", "right")
 
         if box:
             frac = (-bl / pw, 1.0 + br / pw, -bt / ph, 1.0 + bb / ph)
-            tex = art.panel(name, aw, ah, net, frac, transposed=rot)
+            tex = art.panel(name, aw, ah, net, frac)
         elif name == "back":
             tex = art.back(aw, ah)
         elif name in ("left", "right"):
@@ -1161,13 +1159,13 @@ def render_preview(net: Net, art: ArtBuilder, out_path: str,
     # ВАЖНО: точки записаны как (x, глубина, высота). Развёртка зеркалит ось X
     # (см. ArtBuilder._panel_quad), поэтому u=0 — это сторона x=W.
     faces = [
-        ("back", [(W, 0, H), (0, 0, H), (0, 0, 0), (W, 0, 0)]),
-        ("left", [(W, 0, H), (W, 0, 0), (W, D, 0), (W, D, H)]),
-        ("right", [(0, 0, 0), (0, 0, H), (0, D, H), (0, D, 0)]),
-        ("floor", [(W, 0, 0), (0, 0, 0), (0, D, 0), (W, D, 0)]),
+        ("back", [(0, 0, H), (W, 0, H), (W, 0, 0), (0, 0, 0)]),
+        ("left", [(0, 0, H), (0, 0, 0), (0, D, 0), (0, D, H)]),
+        ("right", [(W, 0, 0), (W, 0, H), (W, D, H), (W, D, 0)]),
+        ("floor", [(0, 0, 0), (W, 0, 0), (W, D, 0), (0, D, 0)]),
     ]
     if net.C:
-        faces.append(("top", [(W, D, H), (0, D, H), (0, 0, H), (W, 0, H)]))
+        faces.append(("top", [(0, D, H), (W, D, H), (W, 0, H), (0, 0, H)]))
 
     for name, quad3 in faces:
         _warp_face(canvas, tex_of(name), proj(quad3))

@@ -112,7 +112,7 @@
         var tex;
         if (box) {
           var frac = [-bl / pw, 1 + br / pw, -bt / ph, 1 + bb / ph];
-          tex = art.panel(name, aw, ah, net, frac, rot);
+          tex = art.panel(name, aw, ah, net, frac);
         } else if (name === "back") {
           tex = art.back(aw, ah);
         } else if (name === "left" || name === "right") {

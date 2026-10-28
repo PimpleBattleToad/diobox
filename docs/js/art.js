@@ -129,36 +129,44 @@
   };
 
   /* Углы панели (TL, TR, BR, BL) в долях окна. */
-  Art.prototype.panelQuad = function (kind, W, H, D, transposed) {
+  Art.prototype.panelQuad = function (kind, W, H, D, layout) {
     var k = this.depthK;
     function uv(x, y, z) {
-      var xu = 1 - x / W;                       // u идёт против x (см. Python)
+      // Развёртка складывается лицевой стороной внутрь: смотрящий стоит с
+      // открытой стороны, мировой +x уходит у него влево, поэтому ось u
+      // (вправо по листу) = 1 - x/W. Углы панелей заданы с учётом этого.
+      var xu = 1 - x / W;
       var lam = D > 0 ? (k * D) / (k * D + (D - z)) : 1;
       return [0.5 + (xu - 0.5) * lam, 0.5 - (y / H - 0.5) * lam];
     }
-    var corners = {
-      back: [[W, H, 0], [0, H, 0], [0, 0, 0], [W, 0, 0]],
-      left: [[W, H, 0], [W, 0, 0], [W, 0, D], [W, H, D]],
-      right: [[0, 0, 0], [0, H, 0], [0, H, D], [0, 0, D]],
-      floor: [[W, 0, 0], [0, 0, 0], [0, 0, D], [W, 0, D]],
-      top: [[W, H, D], [0, H, D], [0, H, 0], [W, H, 0]]
-    }[kind];
-    if (transposed) {
-      var order = { left: [0, 3, 2, 1], right: [1, 2, 3, 0] }[kind] || [0, 1, 2, 3];
-      corners = order.map(function (i) { return corners[i]; });
+    var corners;
+    if (layout === "back" && (kind === "left" || kind === "right")) {
+      // стенка повёрнута на 90°: u идёт по глубине, v — по высоте
+      corners = {
+        left: [[0, H, D], [0, H, 0], [0, 0, 0], [0, 0, D]],
+        right: [[W, H, 0], [W, H, D], [W, 0, D], [W, 0, 0]]
+      }[kind];
+    } else {
+      corners = {
+        back: [[0, H, 0], [W, H, 0], [W, 0, 0], [0, 0, 0]],
+        left: [[0, H, 0], [0, 0, 0], [0, 0, D], [0, H, D]],
+        right: [[W, 0, 0], [W, H, 0], [W, H, D], [W, 0, D]],
+        floor: [[0, 0, 0], [W, 0, 0], [W, 0, D], [0, 0, D]],
+        top: [[0, H, D], [W, H, D], [W, H, 0], [0, H, 0]]
+      }[kind];
     }
     return corners.map(function (p) { return uv(p[0], p[1], p[2]); });
   };
 
   /* Текстура панели: wMm x hMm в пикселях листа. */
-  Art.prototype.panel = function (kind, wMm, hMm, net, frac, transposed) {
+  Art.prototype.panel = function (kind, wMm, hMm, net, frac) {
     var tw = Math.max(1, Math.round(wMm * this.ppm));
     var th = Math.max(1, Math.round(hMm * this.ppm));
     if (!this.src) return this.placeholder(tw, th);
     frac = frac || [0, 1, 0, 1];
     var win = this.windowCanvas(net.W, net.H);
     var r = this.windowRect(net.W, net.H);
-    var uq = this.panelQuad(kind, net.W, net.H, net.D, transposed);
+    var uq = this.panelQuad(kind, net.W, net.H, net.D, net.layout || "cross");
     var quad = uq.map(function (p) {
       return [r[0] + p[0] * r[2] - win.ox, r[1] + p[1] * r[3] - win.oy];
     });
