@@ -1,5 +1,5 @@
 /* Офлайн-кэш. При обновлении файлов поднимать номер версии. */
-var CACHE = "diobox-v2";
+var CACHE = "diobox-v3";
 var FILES = [
   "./",
   "index.html",

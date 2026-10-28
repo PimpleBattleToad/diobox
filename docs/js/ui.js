@@ -62,28 +62,28 @@
     var px = Math.round(s[0] * p.dpi / 25.4) + " × " + Math.round(s[1] * p.dpi / 25.4);
     var html = "вкладыш <b>" + fmt(net.W) + " × " + fmt(net.D) + "</b> мм, стенки " +
       fmt(net.H) + " мм · лист <b>" + fmt(s[0]) + " × " + fmt(s[1]) + "</b> мм";
+    var extra = "";
     if (p.paper === "none") {
-      html += " · без полей, " + px + " px";
+      extra = "без полей · " + px + " px";
     } else {
       var paperName = ch[0].toUpperCase();
-      html += " · " + paperName + " " + fmt(ch[1]) + "×" + fmt(ch[2]);
+      html += " · " + paperName + " " + fmt(ch[1]) + " × " + fmt(ch[2]);
       if (!ch[3] && p.paper === "auto") {
-        var pages = null;
         html += " — на несколько листов";
         var alt = altPaper(s[0], s[1]);
         if (alt) {
-          html += ' <a class="alt" data-paper="' + alt + '">взять ' +
-            alt.toUpperCase() + " — влезет одним листом</a>";
+          extra += 'взять <a class="alt" data-paper="' + alt + '">' +
+            alt.toUpperCase() + " — влезет одним листом</a> · ";
         }
       } else {
         html += " — 1 лист";
       }
-      html += " · " + px + " px";
+      extra += px + " px";
     }
     if (p.layout === "auto") {
-      html += " · " + (net.layout === "back" ? "боковины на заднике" : "боковины на полу");
+      extra += " · " + (net.layout === "back" ? "боковины на заднике" : "боковины на полу");
     }
-    els.info.innerHTML = html;
+    els.info.innerHTML = html + (extra ? "<span class=\"info2\">" + extra + "</span>" : "");
     var link = els.info.querySelector("a.alt");
     if (link) {
       link.addEventListener("click", function () {

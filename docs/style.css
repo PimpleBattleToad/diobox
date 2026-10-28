@@ -60,7 +60,8 @@ summary::marker{color:var(--muted)}
 .checks input{width:auto;margin:2px 0 0}
 .info{margin-top:14px;background:#f7f4ee;border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:13px;color:#4b463e}
 .info b{color:var(--ink)}
-.info .alt{color:var(--accent);text-decoration:underline;cursor:pointer;display:inline-block;margin-top:2px}
+.info .info2{display:block;margin-top:4px;color:#6f6a62}
+.info .alt{color:var(--accent);text-decoration:underline;cursor:pointer}
 
 /* результат */
 .result{margin-top:18px}
