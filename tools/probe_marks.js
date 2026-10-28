@@ -1,0 +1,10 @@
+const marks = document.querySelector('#marks');
+const labels = document.querySelector('#labels');
+labels.checked = true;
+marks.checked = false;
+marks.dispatchEvent(new Event('change', { bubbles: true }));
+const off = { labelsDisabled: labels.disabled, labelsChecked: labels.checked };
+marks.checked = true;
+marks.dispatchEvent(new Event('change', { bubbles: true }));
+const on = { labelsDisabled: labels.disabled };
+return { off, on };

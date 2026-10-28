@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вкладыш-диорама</title>
+<style>
+  :root{
+    --ink:#1d2024;
+    --ink-soft:#5b6169;
+    --line:#ddd8cf;
+    --paper:#f6f3ee;
+    --card:#fffdfa;
+    --accent:#2f5d52;
+    --accent-ink:#fff;
+    --warn:#9a5b1f;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font:15px/1.45 "Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 18px 60px}
+  [hidden]{display:none !important}
+  header h1{
+    font-size:26px;font-weight:650;letter-spacing:-.02em;margin:0 0 4px;
+  }
+  header p{margin:0;color:var(--ink-soft);max-width:70ch}
+
+  .grid{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);
+        gap:16px;margin-top:18px}
+  @media (max-width:900px){ .grid{grid-template-columns:1fr} }
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px;box-shadow:0 1px 2px rgba(30,25,15,.04);
+  }
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;
+           color:var(--ink-soft);margin:0 0 12px;font-weight:600}
+
+  /* ------- картинка ------- */
+  .drop{
+    border:1.5px dashed #cfc7ba;border-radius:12px;background:#faf7f2;
+    padding:26px 18px;text-align:center;cursor:pointer;transition:.15s;
+    min-height:180px;display:flex;align-items:center;justify-content:center;
+  }
+  .drop:hover{border-color:#b3a894;background:#f7f3ec}
+  .drop.over{border-color:var(--accent);background:#eef4f1}
+  .drop .big{font-size:17px;font-weight:600;margin-bottom:4px}
+  .muted{color:var(--ink-soft);font-size:13px}
+  .btns{display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap}
+
+  .shot{position:relative;display:inline-block;max-width:100%;
+        border-radius:10px;overflow:hidden;touch-action:none;
+        user-select:none;cursor:grab}
+  .shot:active{cursor:grabbing}
+  .shot img{display:block;width:auto;height:auto;max-width:100%;max-height:54vh}
+  .crop{
+    position:absolute;border:2px solid rgba(255,255,255,.95);
+    box-shadow:0 0 0 9999px rgba(20,20,18,.46);
+    border-radius:2px;pointer-events:none;
+  }
+  .crop::after{
+    content:"";position:absolute;inset:0;border:1px solid rgba(0,0,0,.25);
+  }
+  .crop__label{
+    position:absolute;left:50%;top:6px;transform:translateX(-50%);
+    background:rgba(20,20,18,.72);color:#fff;font-size:11px;letter-spacing:.06em;
+    text-transform:uppercase;padding:3px 8px;border-radius:20px;white-space:nowrap;
+  }
+  .stageWrap{display:flex;flex-direction:column;align-items:center;gap:10px}
+  .shotbar{display:flex;gap:12px;align-items:center;justify-content:center;
+           flex-wrap:wrap;font-size:13px}
+  .link{background:none;border:0;color:var(--accent);font:inherit;
+        text-decoration:underline;cursor:pointer;padding:0}
+
+  /* ------- поля ------- */
+  .sizes{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  label.f{display:flex;flex-direction:column;gap:5px;font-size:12.5px;
+          color:var(--ink-soft);letter-spacing:.02em}
+  input[type=number],select{
+    width:100%;height:42px;padding:0 10px;border:1px solid var(--line);
+    border-radius:9px;background:#fff;color:var(--ink);font:15px/1 inherit;
+  }
+  input[type=number]:focus,select:focus{outline:2px solid #cfdfd9;border-color:#9dbfb4}
+  .hint{font-size:12.5px;color:var(--ink-soft);margin:8px 0 0}
+
+  details{margin-top:14px;border-top:1px solid #eee8de;padding-top:12px}
+  summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--ink-soft);
+          list-style:none}
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"▸ ";display:inline-block;transition:.15s}
+  details[open] summary::before{transform:rotate(90deg)}
+  .adv{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  @media (max-width:520px){ .adv{grid-template-columns:1fr} }
+  .adv .wide{grid-column:1/-1}
+  .checks{display:grid;grid-template-columns:1fr 1fr;gap:10px 18px;align-items:center;margin-top:4px}
+  .check{display:flex;align-items:center;gap:8px;font-size:13.5px;
+         color:var(--ink-soft);height:42px}
+  .check input{width:17px;height:17px;accent-color:var(--accent)}
+
+  .info{margin-top:14px;font-size:13px;color:var(--ink-soft);
+        background:#f7f5f0;border:1px solid #ece7de;border-radius:10px;padding:10px 12px;
+        min-height:44px}
+  .info b{color:var(--ink);font-weight:600}
+  .info .warn{color:var(--warn)}
+  .info a.alt{color:#2b6a3e;text-decoration:underline;text-underline-offset:2px}
+  .info a.alt:hover{color:#1e5230}
+
+  button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--line);
+         background:#fff;color:var(--ink);padding:0 16px;height:40px;transition:.12s}
+  button:hover{background:#f7f4ee}
+  button:disabled{opacity:.55;cursor:default}
+  button.primary{
+    width:100%;margin-top:16px;height:50px;font-size:16px;font-weight:600;
+    background:var(--accent);border-color:var(--accent);color:var(--accent-ink);
+  }
+  button.primary:hover{background:#274e45}
+  button.ghost{background:#f4f0e9;border-color:#e4dccd}
+  button.sm{height:34px;font-size:13px;padding:0 12px}
+
+  /* ------- результат ------- */
+  .result{margin-top:16px}
+  .result .head{display:flex;justify-content:space-between;align-items:baseline;
+                gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .result .head h2{margin:0}
+  .ready{font-size:12.5px;color:var(--warn)}
+  .stale{font-size:12.5px;color:#8a6d2f;background:#fdf6e6;border:1px solid #efe0bf;
+         border-radius:20px;padding:2px 10px}
+  .result.stale-on .rgrid{opacity:.55;transition:opacity .2s}
+  .result.stale-on .rgrid a{pointer-events:none}
+  .rgrid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px}
+  .rgrid.noprev{grid-template-columns:minmax(0,1fr)}
+  @media (max-width:820px){ .rgrid{grid-template-columns:1fr} }
+  .prev{border:1px solid #e9e4da;border-radius:12px;overflow:hidden;background:#f3f0ea}
+  .prev img{display:block;width:100%;height:auto}
+  .cap{font-size:12.5px;color:var(--ink-soft);margin:6px 2px 0}
+  .dl{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+  .dl a{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    text-decoration:none;color:var(--ink);border:1px solid var(--line);
+    background:#fff;border-radius:10px;padding:11px 13px;font-weight:600;font-size:14px;
+  }
+  .dl a:hover{background:#f7f4ee}
+  .dl small{color:var(--ink-soft);font-weight:400;font-size:12.5px}
+  .report{font-size:13px;color:var(--ink-soft);margin-top:12px;white-space:pre-line}
+  .err{margin-top:12px;color:#8c2f2f;background:#fdf1f0;border:1px solid #f0d3cf;
+       border-radius:10px;padding:10px 12px;font-size:13.5px;white-space:pre-line}
+  .spin{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.4);
+        border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;
+        vertical-align:-2px;margin-right:8px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Вкладыш-диорама</h1>
+    <p>Введите внутренние размеры коробки и подложите свою картинку — получите
+       выкройку 1:1 в PNG и PDF и превью того, как это будет выглядеть внутри.</p>
+  </header>
+
+  <div class="grid">
+    <!-- ---------- картинка ---------- -->
+    <section class="card">
+      <h2>Картинка</h2>
+
+      <div id="drop" class="drop" tabindex="0">
+        <div id="dropEmpty">
+          <div class="big">Перетащите картинку</div>
+          <div class="muted">или нажмите, чтобы выбрать файл · JPG, PNG, WEBP</div>
+          <div class="btns">
+            <button type="button" id="pickBtn">Выбрать файл</button>
+            <button type="button" id="demoBtn" class="ghost">Демо-пейзаж</button>
+          </div>
+        </div>
+        <div id="stageWrap" class="stageWrap" hidden>
+          <div id="shot" class="shot">
+            <img id="artImg" alt="выбранная картинка">
+            <div id="crop" class="crop" hidden><span class="crop__label">пойдёт на задник</span></div>
+          </div>
+          <div class="shotbar">
+            <span id="artName" class="muted"></span>
+            <button type="button" id="changeBtn" class="link">другая картинка</button>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="file" accept="image/*" hidden>
+      <p class="hint" id="artHint">Рамку можно тянуть — она показывает, какая часть
+         картинки попадёт внутрь коробки. В объёмной раскладке рисунок продолжается
+         на боковины, пол и потолок, поэтому смотреть в коробку нужно спереди.</p>
+    </section>
+
+    <!-- ---------- размеры ---------- -->
+    <section class="card">
+      <h2>Коробка</h2>
+      <div class="sizes">
+        <label class="f">Ширина, мм
+          <input type="number" id="w" value="200" min="30" max="2000" step="1" inputmode="numeric">
+        </label>
+        <label class="f">Глубина, мм
+          <input type="number" id="d" value="150" min="30" max="2000" step="1" inputmode="numeric">
+        </label>
+        <label class="f">Высота, мм
+          <input type="number" id="h" value="100" min="20" max="2000" step="1" inputmode="numeric">
+        </label>
+      </div>
+      <p class="hint">Внутренние размеры. Вкладыш делается на пару миллиметров
+         меньше, чтобы свободно входил.</p>
+
+      <details id="advBox">
+        <summary>Тонкая настройка</summary>
+        <div class="adv">
+          <label class="f">Зазор от стенок, мм
+            <input type="number" id="fit" value="0.5" min="0" max="10" step="0.5">
+          </label>
+          <label class="f">Клеевые клапаны, мм
+            <input type="number" id="tab" value="12" min="0" max="60" step="1">
+          </label>
+          <label class="f">Вылет под рез, мм
+            <input type="number" id="bleed" value="3" min="0" max="20" step="1">
+          </label>
+          <label class="f">Поле листа, мм
+            <input type="number" id="margin" value="12" min="0" max="40" step="1">
+          </label>
+          <label class="f">Разрешение, dpi
+            <select id="dpi">
+              <option>150</option><option>200</option>
+              <option selected>300</option><option>400</option><option>600</option>
+            </select>
+          </label>
+          <label class="f">Бумага для PDF
+            <select id="paper">
+              <option value="auto" selected>авто</option>
+              <option value="a4">A4</option>
+              <option value="a3">A3</option>
+              <option value="a2">A2</option>
+              <option value="a1">A1</option>
+              <option value="letter">Letter</option>
+              <option value="legal">Legal</option>
+              <option value="none">один лист = выкройка</option>
+            </select>
+          </label>
+          <label class="f">Боковины
+            <select id="side">
+              <option value="wrap" selected>продолжение края</option>
+              <option value="blur">размытое продолжение</option>
+              <option value="solid">один цвет</option>
+              <option value="none">без рисунка</option>
+            </select>
+          </label>
+          <label class="f">Пол
+            <select id="floor">
+              <option value="blur" selected>размытый низ</option>
+              <option value="solid">один цвет</option>
+              <option value="none">без рисунка</option>
+            </select>
+          </label>
+          <label class="f">Картинка на задник
+            <select id="artMode">
+              <option value="cover" selected>заполнить (обрезка)</option>
+              <option value="contain">вписать целиком</option>
+            </select>
+          </label>
+          <label class="f">Раскладка картинки
+            <select id="fill">
+              <option value="box" selected>объёмная — на все стенки</option>
+              <option value="flat">плоская — продолжение края</option>
+            </select>
+          </label>
+          <label class="f">Раскладка листа
+            <select id="layout">
+              <option value="auto" selected>авто — компактная</option>
+              <option value="cross">боковины на полу (крест)</option>
+              <option value="back">боковины на заднике</option>
+            </select>
+          </label>
+          <div class="checks wide">
+            <label class="check">
+              <input type="checkbox" id="ceiling" checked> закрыть сверху потолком
+            </label>
+            <label class="check">
+              <input type="checkbox" id="labels"> подписать панели
+            </label>
+            <label class="check">
+              <input type="checkbox" id="marks" checked> линии реза и сгиба
+            </label>
+            <label class="check">
+              <input type="checkbox" id="blank"> пустая развёртка — только линии
+            </label>
+          </div>
+        </div>
+      </details>
+
+      <div id="info" class="info">считаю…</div>
+
+      <button type="button" id="go" class="primary">Сделать выкройку</button>
+      <div id="err" class="err" hidden></div>
+    </section>
+  </div>
+
+  <!-- ---------- результат ---------- -->
+  <section id="result" class="card result" hidden>
+    <div class="head">
+      <h2>Готово</h2>
+      <span id="stale" class="stale" hidden>размеры изменились — пересоберите</span>
+      <span id="ready" class="ready"></span>
+    </div>
+    <div class="rgrid">
+      <div>
+        <div id="prevBlock">
+          <div class="prev"><img id="prevImg" alt="как это будет выглядеть в коробке"></div>
+          <p class="cap">Так выкройка смотрится собранной — вид снаружи, внутрь коробки.</p>
+        </div>
+      </div>
+      <div>
+        <div class="prev"><img id="sheetImg" alt="лист выкройки"></div>
+        <p class="cap" id="sheetCap"></p>
+        <div class="dl">
+          <a id="dlPng" href="#" download><span>PNG, 1:1</span><small id="pngMeta"></small></a>
+          <a id="dlPdf" href="#" download><span>PDF для печати</span><small id="pdfMeta"></small></a>
+        </div>
+        <div id="report" class="report"></div>
+        <button type="button" id="openFolder" class="sm" style="margin-top:12px">Показать в папке</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+"use strict";
+
+const $ = (id) => document.getElementById(id);
+const els = {
+  drop: $("drop"), file: $("file"), pick: $("pickBtn"), demo: $("demoBtn"),
+  dropEmpty: $("dropEmpty"), stageWrap: $("stageWrap"), shot: $("shot"),
+  img: $("artImg"), crop: $("crop"), artName: $("artName"),
+  change: $("changeBtn"), artHint: $("artHint"),
+  w: $("w"), d: $("d"), h: $("h"), fit: $("fit"), tab: $("tab"),
+  bleed: $("bleed"), margin: $("margin"), dpi: $("dpi"),
+  side: $("side"), floor: $("floor"), artMode: $("artMode"), fill: $("fill"),
+  layout: $("layout"),
+  paper: $("paper"), labels: $("labels"), marks: $("marks"),
+  ceiling: $("ceiling"), blank: $("blank"), advBox: $("advBox"),
+  info: $("info"), go: $("go"), err: $("err"),
+  result: $("result"), prevBlock: $("prevBlock"), prevImg: $("prevImg"),
+  sheetImg: $("sheetImg"),
+  sheetCap: $("sheetCap"), dlPng: $("dlPng"), dlPdf: $("dlPdf"),
+  pngMeta: $("pngMeta"), pdfMeta: $("pdfMeta"), report: $("report"),
+  ready: $("ready"), stale: $("stale"), openFolder: $("openFolder"),
+};
+
+const S = { art: null, demo: false, fx: 0.5, fy: 0.5, job: null, busy: false,
+             ver: 0, sig: null };
+const LS = "diobox.v1";
+
+/* ------------------------------ сохранение ------------------------------ */
+const FIELDS = ["w","d","h","fit","tab","bleed","margin","dpi","side","floor","artMode","fill","layout","paper"];
+
+function saveState(){
+  const o = {};
+  FIELDS.forEach(k => o[k] = els[k].value);
+  o.labels = els.labels.checked;
+  o.marks = els.marks.checked;
+  o.ceiling = els.ceiling.checked;
+  o.blank = els.blank.checked;
+  o.adv = els.advBox.open;
+  try { localStorage.setItem(LS, JSON.stringify(o)); } catch(e){}
+}
+function loadState(){
+  let o = null;
+  try { o = JSON.parse(localStorage.getItem(LS) || "null"); } catch(e){}
+  if (!o) return;
+  FIELDS.forEach(k => { if (o[k] !== undefined) els[k].value = o[k]; });
+  if (o.labels !== undefined) els.labels.checked = !!o.labels;
+  if (o.marks !== undefined) els.marks.checked = !!o.marks;
+  if (o.ceiling !== undefined) els.ceiling.checked = !!o.ceiling;
+  if (o.blank !== undefined) els.blank.checked = !!o.blank;
+  if (o.adv) els.advBox.open = true;
+}
+
+/* ------------------------------ параметры ------------------------------- */
+function num(el, def){
+  const v = parseFloat(String(el.value).replace(",", "."));
+  return Number.isFinite(v) ? v : def;
+}
+function params(){
+  return {
+    w: num(els.w, 200), d: num(els.d, 150), h: num(els.h, 100),
+    fit: num(els.fit, 0.5), tab: num(els.tab, 12), bleed: num(els.bleed, 3),
+    margin: num(els.margin, 12), dpi: num(els.dpi, 300),
+    side: els.side.value, floor: els.floor.value,
+    art_mode: els.artMode.value, paper: els.paper.value,
+    fill: els.fill.value,
+    labels: els.labels.checked,
+    no_marks: !els.marks.checked,
+    no_ceiling: !els.ceiling.checked,
+    blank: els.blank.checked,
+    layout: els.layout.value,
+    focus: [S.fx, S.fy],
+  };
+}
+function netDims(){
+  const p = params();
+  return {
+    W: Math.max(1, p.w - 2 * p.fit),
+    D: Math.max(1, p.d - 2 * p.fit),
+    H: Math.max(20, p.h - 2),
+  };
+}
+
+/* ------------------------------ картинка -------------------------------- */
+function showStage(){
+  els.dropEmpty.hidden = true;
+  els.stageWrap.hidden = false;
+  els.pick.hidden = true; els.demo.hidden = true;
+}
+function hideStage(){
+  els.dropEmpty.hidden = false;
+  els.stageWrap.hidden = true;
+  els.pick.hidden = false; els.demo.hidden = false;
+}
+function setImage(src, name, demo){
+  S.demo = !!demo;
+  S.art = demo ? null : src;
+  S.ver++;
+  els.img.onload = () => { drawCrop(); };
+  els.img.src = src;
+  els.artName.textContent = name || "";
+  els.artHint.hidden = false;
+  showStage();
+  drawCrop();
+  refreshStale();
+}
+function clearImage(){
+  S.art = null; S.demo = false;
+  els.img.removeAttribute("src");
+  hideStage();
+}
+function readFile(file){
+  if (!file) return;
+  if (!/^image\//.test(file.type || "")) {
+    fail("Это не картинка. Нужен JPG, PNG или WEBP.");
+    return;
+  }
+  const fr = new FileReader();
+  fr.onload = () => setImage(fr.result, file.name, false);
+  fr.onerror = () => fail("Не удалось прочитать файл.");
+  fr.readAsDataURL(file);
+}
+
+/* ------------------------- рамка кадрирования --------------------------- */
+function cropFractions(){
+  const { W, H } = netDims();
+  const a = W / H;                       // пропорции задника
+  const img = els.img;
+  const iw = img.naturalWidth || 4, ih = img.naturalHeight || 3;
+  const ia = iw / ih;
+  let cw = 1, ch = 1;
+  if (ia >= a) { cw = a / ia; }
+  else { ch = ia / a; }
+  if (params().art_mode === "contain") return { cw: 1, ch: 1, a, on: false };
+  return { cw, ch, a, on: true };
+}
+function drawCrop(){
+  const img = els.img;
+  if (!img.getAttribute("src") || !img.complete || !img.naturalWidth) return;
+  const { cw, ch, on } = cropFractions();
+  els.crop.hidden = !on;
+  if (!on) return;
+  const maxX = 1 - cw, maxY = 1 - ch;
+  const l = (maxX > 0 ? S.fx * maxX : 0) * 100;
+  const t = (maxY > 0 ? S.fy * maxY : 0) * 100;
+  els.crop.style.left = l + "%";
+  els.crop.style.top = t + "%";
+  els.crop.style.width = (cw * 100) + "%";
+  els.crop.style.height = (ch * 100) + "%";
+}
+function focusFromPointer(ev){
+  const r = els.shot.getBoundingClientRect();
+  if (!r.width || !r.height) return;
+  const { cw, ch } = cropFractions();
+  const px = Math.min(1, Math.max(0, (ev.clientX - r.left) / r.width));
+  const py = Math.min(1, Math.max(0, (ev.clientY - r.top) / r.height));
+  const maxX = 1 - cw, maxY = 1 - ch;
+  if (maxX > 0.002) S.fx = Math.min(1, Math.max(0, (px - cw / 2) / maxX));
+  if (maxY > 0.002) S.fy = Math.min(1, Math.max(0, (py - ch / 2) / maxY));
+  drawCrop();
+  refreshStale();
+}
+
+let dragging = false;
+els.shot.addEventListener("pointerdown", (ev) => {
+  if (cropFractions().on === false) return;
+  dragging = true;
+  els.shot.setPointerCapture(ev.pointerId);
+  focusFromPointer(ev);
+});
+els.shot.addEventListener("pointermove", (ev) => {
+  if (dragging) { ev.preventDefault(); focusFromPointer(ev); }
+});
+els.shot.addEventListener("pointerup", () => { dragging = false; });
+els.shot.addEventListener("pointercancel", () => { dragging = false; });
+
+/* ------------------------------ события -------------------------------- */
+els.pick.addEventListener("click", (e) => { e.stopPropagation(); els.file.click(); });
+els.drop.addEventListener("click", () => { if (els.stageWrap.hidden) els.file.click(); });
+els.drop.addEventListener("keydown", (e) => {
+  if ((e.key === "Enter" || e.key === " ") && els.stageWrap.hidden) {
+    e.preventDefault(); els.file.click();
+  }
+});
+els.file.addEventListener("change", () => {
+  readFile(els.file.files && els.file.files[0]);
+  els.file.value = "";
+});
+els.change.addEventListener("click", (e) => { e.stopPropagation(); els.file.click(); });
+els.demo.addEventListener("click", (e) => {
+  e.stopPropagation();
+  setImage("/demo.png", "демо-пейзаж", true);
+});
+
+["dragenter", "dragover"].forEach(n => els.drop.addEventListener(n, (e) => {
+  e.preventDefault(); els.drop.classList.add("over");
+}));
+["dragleave", "drop"].forEach(n => els.drop.addEventListener(n, (e) => {
+  e.preventDefault(); els.drop.classList.remove("over");
+}));
+els.drop.addEventListener("drop", (e) => {
+  const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+  if (f) readFile(f);
+});
+
+document.addEventListener("paste", (e) => {
+  const items = (e.clipboardData && e.clipboardData.items) || [];
+  for (const it of items) {
+    if (it.type && it.type.indexOf("image/") === 0) {
+      readFile(it.getAsFile());
+      break;
+    }
+  }
+});
+
+// файл, брошенный мимо зоны, не должен открываться вместо страницы
+window.addEventListener("dragover", (e) => e.preventDefault());
+window.addEventListener("drop", (e) => e.preventDefault());
+
+FIELDS.forEach(k => {
+  els[k].addEventListener("change", () => { saveState(); drawCrop(); scheduleInfo(); refreshStale(); });
+  els[k].addEventListener("input", () => { drawCrop(); scheduleInfo(); refreshStale(); });
+});
+els.labels.addEventListener("change", () => { saveState(); scheduleInfo(); refreshStale(); });
+[els.ceiling, els.blank].forEach(el => el.addEventListener("change", () => {
+  saveState(); scheduleInfo(); refreshStale();
+}));
+els.marks.addEventListener("change", () => {
+  saveState(); scheduleInfo(); refreshStale(); syncLabels();
+});
+// подписи рисуются вместе с линиями реза — без них чекбокс не работает
+function syncLabels(){
+  const on = els.marks.checked;
+  els.labels.disabled = !on;
+  els.labels.title = on ? "" : "подписи рисуются вместе с линиями реза";
+  if (!on) els.labels.checked = false;
+}
+syncLabels();
+
+// в объёмной раскладке картинка всегда заполняет кадр, «вписать целиком» не работает
+function syncFill(){
+  const box = els.fill.value === "box";
+  els.artMode.disabled = box;
+  els.artMode.title = box
+    ? "в объёмной раскладке картинка всегда заполняет кадр"
+    : "";
+}
+syncFill();
+els.fill.addEventListener("change", syncFill);
+window.addEventListener("resize", drawCrop);
+
+/* результат устарел, если параметры поменялись после генерации */
+function sign(){
+  return JSON.stringify(params()) + "|" + S.ver + "|" + S.fx.toFixed(4) + S.fy.toFixed(4);
+}
+function refreshStale(){
+  if (!S.job) return;
+  const changed = sign() !== S.sig;
+  els.result.classList.toggle("stale-on", changed);
+  els.stale.hidden = !changed;
+}
+
+/* --------------------------- расчёт размеров --------------------------- */
+let infoTimer = null;
+function scheduleInfo(){
+  clearTimeout(infoTimer);
+  infoTimer = setTimeout(fetchInfo, 220);
+}
+function fmt(n){ return String(Math.round(n * 10) / 10).replace(".", ","); }
+
+async function fetchInfo(){
+  const p = params();
+  const q = new URLSearchParams({
+    w: p.w, d: p.d, h: p.h, fit: p.fit, tab: p.tab, bleed: p.bleed,
+    margin: p.margin, dpi: p.dpi, paper: p.paper, marks: "1",
+    no_marks: p.no_marks ? "1" : "0",
+    no_ceiling: p.no_ceiling ? "1" : "0",
+    fill: p.fill,
+    layout: p.layout,
+  });
+  try {
+    const r = await fetch("/api/geometry?" + q.toString());
+    const g = await r.json();
+    if (!g.ok) { els.info.textContent = g.error || "Проверьте размеры"; return; }
+    const parts = [];
+    parts.push(`вкладыш <b>${fmt(g.net.W)} × ${fmt(g.net.D)}</b> мм, стенки ${fmt(g.net.H)} мм`);
+    parts.push(`лист <b>${Math.round(g.sheet.w)} × ${Math.round(g.sheet.h)}</b> мм`);
+    if (g.layout === "back") parts.push("боковины на заднике");
+    if (g.paper) {
+      const paper = g.paper.toUpperCase();
+      const mm = g.paper_mm ? ` ${Math.round(Math.min(...g.paper_mm))}×${Math.round(Math.max(...g.paper_mm))}` : "";
+      if (g.fits) {
+        parts.push(`${paper}${mm}`);
+      } else {
+        let s = `<span class="warn">${paper} — на ${g.pages || "несколько"} листов</span>`;
+        if (g.alt_paper) {
+          s += ` <a href="#" class="alt" data-paper="${g.alt_paper}">взять ${g.alt_paper.toUpperCase()} — влезет одним листом</a>`;
+        }
+        parts.push(s);
+      }
+    } else {
+      parts.push("PDF в один лист по размеру выкройки");
+    }
+    parts.push(`${g.sheet.px[0]} × ${g.sheet.px[1]} px`);
+    els.info.innerHTML = parts.join(" · ");
+    els.info.querySelectorAll("a.alt").forEach(a => {
+      a.addEventListener("click", (e) => {
+        e.preventDefault();
+        const v = a.dataset.paper;
+        const sel = els.paper;
+        if (sel && v && [...sel.options].some(o => o.value === v)) {
+          sel.value = v;
+          saveState();
+          scheduleInfo();
+        }
+      });
+    });
+  } catch (e) {
+    els.info.textContent = "Размеры не проверены";
+  }
+}
+
+/* ------------------------------ генерация ------------------------------- */
+function fail(msg){
+  els.err.hidden = false;
+  els.err.textContent = msg;
+}
+function failOff(){ els.err.hidden = true; }
+
+els.go.addEventListener("click", async () => {
+  if (S.busy) return;
+  failOff();
+  S.busy = true;
+  els.go.disabled = true;
+  els.go.innerHTML = '<span class="spin"></span>Собираю выкройку…';
+
+  try {
+    const body = params();
+    body.image = S.demo ? null : S.art;
+    body.demo = S.demo;
+    const r = await fetch("/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await r.json();
+    if (!data.ok) { fail(data.error || "Не получилось собрать выкройку"); return; }
+    showResult(data);
+  } catch (e) {
+    fail("Сервер не ответил. Проверьте, что окно с программой открыто.");
+  } finally {
+    S.busy = false;
+    els.go.disabled = false;
+    els.go.textContent = "Сделать выкройку";
+  }
+});
+
+function showResult(d){
+  S.job = d.job;
+  const u = d.urls;
+  els.sheetImg.src = u.preview + "?t=" + Date.now();
+  if (u.assembled) {
+    els.prevBlock.hidden = false;
+    els.prevImg.src = u.assembled + "?t=" + Date.now();
+  } else {
+    els.prevBlock.hidden = true;
+  }
+  els.result.querySelector(".rgrid")
+    .classList.toggle("noprev", !u.assembled);
+  const p = params();
+  const box = `${Math.round(p.w)}×${Math.round(p.d)}×${Math.round(p.h)}`;
+  const base = `diorama_${box}`;
+
+  els.dlPng.href = u.png;
+  els.dlPng.download = base + ".png";
+  els.pngMeta.textContent = `${d.sheet_px[0]}×${d.sheet_px[1]} px · ${Math.round(d.dpi)} dpi`;
+
+  els.dlPdf.href = u.pdf;
+  els.dlPdf.download = base + ".pdf";
+  const paper = (d.paper || "").toUpperCase();
+  els.pdfMeta.textContent = d.paper
+    ? (d.pages > 1 ? `${d.pages} стр. · ${paper}` : `1 стр. · ${paper}`)
+    : "страница по размеру выкройки";
+
+  els.sheetCap.textContent =
+    `Лист ${Math.round(d.sheet_mm[0])} × ${Math.round(d.sheet_mm[1])} мм — печатать 1:1, без «вписать в страницу».`;
+  els.report.textContent = d.report.join("\n");
+  els.ready.textContent = "выкройка в папке out/web/" + d.job;
+  els.result.hidden = false;
+  S.sig = sign();
+  els.result.classList.remove("stale-on");
+  els.stale.hidden = true;
+  els.result.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+els.openFolder.addEventListener("click", async () => {
+  if (!S.job) return;
+  try {
+    const r = await fetch("/api/open-folder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ job: S.job }),
+    });
+    const d = await r.json();
+    if (!d.ok) fail(d.error || "Проводник не открылся");
+  } catch (e) { fail("Проводник не открылся"); }
+});
+
+/* -------------------------------- старт -------------------------------- */
+loadState();
+syncLabels();
+fetchInfo();
+</script>
+</body>
+</html>

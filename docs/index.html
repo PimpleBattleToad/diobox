@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Вкладыш-диорама — выкройка по размерам коробки</title>
+<meta name="description" content="Выкройка вкладыша-диорамы под размеры коробки и вашу картинку: рисунок раскладывается по заднику, боковинам, полу и потолку. PNG и PDF, всё считается в браузере.">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#f4f1ea">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="style.css">
+<script>
+/* событие установки приходит раньше основного скрипта — ловим здесь */
+window.__installPrompt = null;
+window.addEventListener("beforeinstallprompt", function (e) {
+  e.preventDefault();
+  window.__installPrompt = e;
+});
+window.addEventListener("appinstalled", function () { window.__installed = true; });
+</script>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="head-row">
+      <h1>Вкладыш-диорама</h1>
+      <button class="btn ghost" id="installBtn" type="button" hidden>Установить приложение</button>
+    </div>
+    <p class="pwa-hint" id="pwaHint" hidden></p>
+    <p>Введите внутренние размеры коробки и подложите свою картинку — получите выкройку 1:1
+       в PNG и PDF. Рисунок раскладывается по заднику, боковинам, полу и потолку так, что при
+       взгляде спереди внутри коробки видна целая картина. Всё считается здесь, в браузере:
+       картинка никуда не отправляется.</p>
+  </header>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Картинка</h2>
+
+      <div id="drop" class="drop">
+        <strong>Перетащите картинку</strong>
+        или нажмите, чтобы выбрать файл · JPG, PNG, WEBP
+        <div class="row">
+          <button class="btn" id="pickBtn" type="button">Выбрать файл</button>
+          <button class="btn" id="demoBtn" type="button">Демо-пейзаж</button>
+        </div>
+      </div>
+      <input type="file" id="file" accept="image/*" hidden>
+
+      <div id="stage" hidden>
+        <div class="shot" id="shot">
+          <img id="prev" alt="выбранная картинка">
+          <div class="crop" id="crop">
+            <div class="crop__label">пойдёт на задник</div>
+          </div>
+        </div>
+        <div class="links">
+          <a href="#" id="demoLink">демо-пейзаж</a>
+          <a href="#" id="pickLink">другая картинка</a>
+        </div>
+      </div>
+
+      <p class="hint">Рамку можно тянуть — она показывает, какая часть картинки попадёт внутрь коробки.
+         В объёмной раскладке рисунок продолжается на боковины, пол и потолок, поэтому смотреть
+         в коробку нужно спереди.</p>
+    </section>
+
+    <section class="card">
+      <h2>Коробка</h2>
+      <div class="fields">
+        <label>Ширина, мм<input id="w" type="number" min="20" max="1200" step="1" value="200" inputmode="numeric"></label>
+        <label>Глубина, мм<input id="d" type="number" min="20" max="1200" step="1" value="150" inputmode="numeric"></label>
+        <label>Высота, мм<input id="h" type="number" min="20" max="1200" step="1" value="100" inputmode="numeric"></label>
+      </div>
+      <p class="hint">Внутренние размеры. Вкладыш делается на пару миллиметров меньше, чтобы свободно входил.</p>
+
+      <details id="adv">
+        <summary>Тонкая настройка</summary>
+        <div class="adv">
+          <label>Зазор от стенок, мм<input id="fit" type="number" min="0" max="5" step="0.1" value="0.5"></label>
+          <label>Клеевые клапаны, мм<input id="tab" type="number" min="0" max="40" step="1" value="12"></label>
+          <label>Вылет под рез, мм<input id="bleed" type="number" min="0" max="10" step="0.5" value="3"></label>
+          <label>Поле листа, мм<input id="margin" type="number" min="4" max="40" step="1" value="12"></label>
+          <label>Разрешение, dpi
+            <select id="dpi">
+              <option>150</option><option>200</option>
+              <option selected>300</option><option>400</option><option>600</option>
+            </select>
+          </label>
+          <label>Бумага для PDF
+            <select id="paper">
+              <option value="auto" selected>авто</option>
+              <option value="a4">A4</option>
+              <option value="a3">A3</option>
+              <option value="a2">A2</option>
+              <option value="a1">A1</option>
+              <option value="none">без полей (по размеру листа)</option>
+            </select>
+          </label>
+          <label>Раскладка листа
+            <select id="layout">
+              <option value="auto" selected>авто — компактная</option>
+              <option value="cross">боковины на полу (крест)</option>
+              <option value="back">боковины на заднике</option>
+            </select>
+          </label>
+          <label>Раскладка картинки
+            <select id="fill">
+              <option value="box" selected>объёмная — на все стенки</option>
+              <option value="flat">плоская — продолжение края</option>
+            </select>
+          </label>
+          <div class="checks">
+            <label><input type="checkbox" id="ceiling" checked> закрыть сверху потолком</label>
+            <label><input type="checkbox" id="labels"> подписать панели</label>
+            <label><input type="checkbox" id="marks" checked> линии реза и сгиба</label>
+            <label><input type="checkbox" id="blank"> пустая развёртка — только линии</label>
+          </div>
+        </div>
+      </details>
+
+      <div class="info" id="info">считаю…</div>
+      <div style="margin-top:14px">
+        <button class="btn primary" id="go" type="button">Сделать выкройку</button>
+      </div>
+    </section>
+  </div>
+
+  <section class="card result" id="result" hidden>
+    <h2>Готово <span class="stale" id="stale" hidden>· размеры изменились, пересоберите</span></h2>
+    <div class="rgrid" id="rgrid">
+      <figure id="prevFig">
+        <img id="assembled" alt="как это выглядит собранным">
+        <figcaption>Так выкройка смотрится собранной — вид снаружи, внутрь коробки.</figcaption>
+      </figure>
+      <div>
+        <figure>
+          <img id="sheetImg" alt="лист выкройки">
+          <figcaption id="sheetCap">лист выкройки</figcaption>
+        </figure>
+        <a class="dl" id="dlPng" href="#" download>PNG, 1:1 <span id="pngMeta"></span></a>
+        <a class="dl" id="dlPdf" href="#" download>PDF для печати <span id="pdfMeta"></span></a>
+        <div class="report" id="report"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Печатать 1:1, без «вписать в страницу». Сплошная линия — резать, штриховая — сгиб,
+    бежевая плашка — клей. Сгибы удобнее продавить тупой стороной ножниц по линейке.
+  </footer>
+</div>
+
+<div class="busy" id="busy" hidden>
+  <div class="spin"></div>
+  <div id="busyText">собираю выкройку…</div>
+</div>
+
+<script src="js/geom.js"></script>
+<script src="js/warp.js"></script>
+<script src="js/art.js"></script>
+<script src="js/sheet.js"></script>
+<script src="js/pdf.js"></script>
+<script src="js/preview.js"></script>
+<script src="js/demo.js"></script>
+<script src="js/ui.js"></script>
+</body>
+</html>
