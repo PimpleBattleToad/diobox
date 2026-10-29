@@ -83,7 +83,7 @@ def main(sheet_path, out_path, layout="cross", size=(1600, 1200)):
     def proj(p):
         d = np.asarray(p, float) - eye
         cz = max(float(d @ f), 1e-6)
-        return (w / 2 + fpx * float(d @ r) / cz, h / 2 - fpx * float(d @ u) / cz)
+        return (w / 2 - fpx * float(d @ r) / cz, h / 2 - fpx * float(d @ u) / cz)
 
     canvas = Image.new("RGB", size, (26, 27, 30))
     for name in ("back", "left", "right", "floor", "top"):

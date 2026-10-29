@@ -75,7 +75,7 @@
     function proj(p) {
       var c = camCoords(p);
       var z = Math.max(c[2], 1e-6);
-      return [w / 2 + fpx * c[0] / z, h / 2 - fpx * c[1] / z];
+      return [w / 2 - fpx * c[0] / z, h / 2 - fpx * c[1] / z];
     }
 
     var faces = [
